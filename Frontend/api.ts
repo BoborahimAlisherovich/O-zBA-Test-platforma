@@ -1,4 +1,4 @@
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://mt.uzbamarkaz.uz/api';
 
 const ACCESS_TOKEN_KEY = 'artedu_access_token';
 const REFRESH_TOKEN_KEY = 'artedu_refresh_token';
