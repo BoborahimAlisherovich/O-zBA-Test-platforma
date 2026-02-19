@@ -37,7 +37,7 @@ const SidebarLink: React.FC<{ to: string, icon: any, label: string, active?: boo
   </Link>
 );
 
-const AppContent: React.FC<{ user: User, data: any, updateData: (d: any) => void, onLogout: () => void }> = ({ user, data, updateData, onLogout }) => {
+const AppContent: React.FC<{ user: User, data: any, updateData: (d: any) => Promise<void>, onLogout: () => void }> = ({ user, data, updateData, onLogout }) => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab');
@@ -204,17 +204,25 @@ const App: React.FC = () => {
     setData(EMPTY_DATA);
   };
 
-  const updateData = (newData: any) => {
-    setData((prev: any) => {
-      const merged = { ...prev, ...newData };
-      if (user?.role === UserRole.ADMIN) {
-        syncSnapshot(merged)
-          .then((serverState) => setData(serverState))
-          .catch((err) => {
-            alert(`Saqlashda xatolik: ${err?.message || 'Nomaʼlum xato'}`);
-          });
-      }
-      return merged;
+  const updateData = (newData: any): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      setData((prev: any) => {
+        const merged = { ...prev, ...newData };
+        if (user?.role === UserRole.ADMIN) {
+          syncSnapshot(merged)
+            .then((serverState) => {
+              setData(serverState);
+              resolve();
+            })
+            .catch((err) => {
+              alert(`Saqlashda xatolik: ${err?.message || "Noma'lum xato"}`);
+              reject(err);
+            });
+        } else {
+          resolve();
+        }
+        return merged;
+      });
     });
   };
 
@@ -234,3 +242,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

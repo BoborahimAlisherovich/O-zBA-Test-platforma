@@ -16,7 +16,7 @@ import * as XLSX from 'xlsx';
 
 interface AdminDashboardProps {
   data: any;
-  updateData: (newData: any) => void;
+  updateData: (newData: any) => Promise<void>;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, updateData }) => {
@@ -421,7 +421,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, updateData }) => 
     const file = e.target.files?.[0];
     if (!file || !selectedSubjectId) return;
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: 'binary' });
@@ -443,7 +443,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, updateData }) => 
             correctIndex: (correctIdx >= 0 && correctIdx < 4) ? correctIdx : 0
           };
         }).filter(q => q.text.trim() !== "");
-        updateData({ [questionDataKey]: [...newQs, ...currentQuestions] });
+        await updateData({ [questionDataKey]: [...newQs, ...currentQuestions] });
         alert(`${newQs.length} ta savol yuklandi.`);
       } catch (err) { alert("Xatolik!"); }
       e.target.value = '';
@@ -479,7 +479,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, updateData }) => 
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: 'binary' });
@@ -542,7 +542,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, updateData }) => 
         });
 
         if (newUsers.length > 0) {
-          updateData({ users: [...newUsers, ...currentUsers] });
+          await updateData({ users: [...newUsers, ...currentUsers] });
           const skippedInfo = skippedRows.length > 0 ? `\nO'tkazib yuborilgan qatorlar: ${skippedRows.join(', ')}` : '';
           alert(`${newUsers.length} ta foydalanuvchi muvaffaqiyatli yuklandi.${skippedInfo}`);
         } else {

@@ -11,10 +11,11 @@ import {
 interface ParticipantDashboardProps {
   user: User;
   data: any;
-  updateData: (newData: any) => void;
+  updateData: (newData: any) => Promise<void>;
 }
 
 const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({ user, data, updateData }) => {
+  const DEMO_MAX_ATTEMPTS = 5;
   const [activeTest, setActiveTest] = useState<Module | null>(null);
   const [activeTestType, setActiveTestType] = useState<'main' | 'demo'>('main');
   const [previewTest, setPreviewTest] = useState<Module | null>(null);
@@ -62,6 +63,13 @@ const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({ user, data,
     if (type === 'main' && alreadyTaken) {
       alert("Siz ushbu testni topshirib bo'lgansiz!");
       return;
+    }
+    if (type === 'demo') {
+      const attempts = (data.demoResults || []).filter((r: any) => r.participantId === user.id && r.moduleId === test.id);
+      if (attempts.length >= DEMO_MAX_ATTEMPTS) {
+        alert("Sizda limit tugadi");
+        return;
+      }
     }
 
     // Har bir fan bo'yicha belgilangan miqdordagi savollarni yig'ish
@@ -378,6 +386,7 @@ const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({ user, data,
               {availableDemoTests.map((test: Module) => {
                 const attempts = (data.demoResults || []).filter((r: any) => r.participantId === user.id && r.moduleId === test.id);
                 const latest = attempts.length > 0 ? attempts[attempts.length - 1] : null;
+                const isLimitReached = attempts.length >= DEMO_MAX_ATTEMPTS;
                 return (
                   <div key={test.id} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col">
                     <h4 className="text-2xl font-black text-gray-900 mb-4">{test.name}</h4>
@@ -393,13 +402,22 @@ const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({ user, data,
                     )}
                     <button
                       onClick={() => {
+                        if (isLimitReached) {
+                          alert("Sizda limit tugadi");
+                          return;
+                        }
                         setIsDemoTestsModalOpen(false);
                         setPreviewTest(test);
                         setPreviewTestType('demo');
                       }}
-                      className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all"
+                      className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
+                        isLimitReached
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-900 text-white hover:bg-blue-600'
+                      }`}
+                      disabled={isLimitReached}
                     >
-                      Demo testni boshlash
+                      {isLimitReached ? "Sizda limit tugadi" : "Demo testni boshlash"}
                     </button>
                   </div>
                 );

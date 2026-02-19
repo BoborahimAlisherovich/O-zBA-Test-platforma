@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/django,python,react,visualstudiocode
-# Edit at https://www.toptal.com/developers/gitignore?templates=django,python,react,visualstudiocode
+# Created by https://www.toptal.com/developers/gitignore/api/django,python,visualstudiocode,react
+# Edit at https://www.toptal.com/developers/gitignore?templates=django,python,visualstudiocode,react
 
 ### Django ###
 *.log
@@ -297,4 +297,4 @@ sketch
 .history
 .ionide
 
-# End of https://www.toptal.com/developers/gitignore/api/django,python,react,visualstudiocode
+# End of https://www.toptal.com/developers/gitignore/api/django,python,visualstudiocode,react
