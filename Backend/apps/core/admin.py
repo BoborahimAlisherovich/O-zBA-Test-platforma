@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Group, Module, ModuleSubjectConfig, Question, Subject, TestResult
+from .models import Group, Module, ModuleSubjectConfig, Question, SiteSetting, Subject, TestResult
 
 
 @admin.register(Group)
@@ -33,3 +33,8 @@ class QuestionAdmin(admin.ModelAdmin):
 @admin.register(TestResult)
 class TestResultAdmin(admin.ModelAdmin):
     list_display = ("id", "participant", "module", "score", "is_passed", "date")
+
+
+@admin.register(SiteSetting)
+class SiteSettingAdmin(admin.ModelAdmin):
+    list_display = ("id", "site_title", "site_subtitle", "demo_max_attempts")
