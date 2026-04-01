@@ -17,3 +17,5 @@ if should_serve_media:
     urlpatterns += [
         re_path(rf"^{media_prefix}(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
     ]
+
+#update
