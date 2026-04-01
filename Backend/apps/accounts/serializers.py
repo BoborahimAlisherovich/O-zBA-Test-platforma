@@ -1,17 +1,39 @@
+import logging
+
 from django.contrib.auth import authenticate
+from django.core.exceptions import DisallowedHost
 from rest_framework import serializers
 
 from .models import User, UserRole
+
+logger = logging.getLogger(__name__)
 
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, allow_blank=False)
     fullName = serializers.CharField(source="full_name")
     groupId = serializers.IntegerField(source="group_id", required=False, allow_null=True)
+    isArchived = serializers.BooleanField(source="is_archived", required=False)
+    profilePhoto = serializers.SerializerMethodField()
+    profilePhotoFile = serializers.ImageField(source="profile_photo", write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ["id", "fullName", "username", "password", "workplace", "role", "groupId"]
+        fields = ["id", "fullName", "username", "password", "workplace", "role", "groupId", "isArchived", "profilePhoto", "profilePhotoFile"]
+
+    def _absolute_or_relative(self, url):
+        request = self.context.get("request")
+        if not request:
+            return url
+        try:
+            return request.build_absolute_uri(url)
+        except DisallowedHost:
+            return url
+
+    def get_profilePhoto(self, obj):
+        if obj.profile_photo:
+            return self._absolute_or_relative(obj.profile_photo.url)
+        return ""
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)
@@ -58,10 +80,13 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField()
 
     def validate(self, attrs):
-        user = authenticate(username=attrs.get("username"), password=attrs.get("password"))
+        username = attrs.get("username")
+        user = authenticate(username=username, password=attrs.get("password"))
         if not user:
+            logger.warning("Login rejected: invalid credentials", extra={"username": username})
             raise serializers.ValidationError("Login yoki parol xato")
         if not user.is_active:
+            logger.warning("Login rejected: inactive user", extra={"username": username, "user_id": user.id})
             raise serializers.ValidationError("Foydalanuvchi nofaol")
         attrs["user"] = user
         return attrs

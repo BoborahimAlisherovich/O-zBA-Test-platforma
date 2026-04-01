@@ -13,6 +13,8 @@ export interface User {
   workplace?: string;
   role: UserRole;
   groupId?: string | number;
+  isArchived?: boolean;
+  profilePhoto?: string;
 }
 
 export interface Group {
@@ -52,6 +54,14 @@ export interface DemoDataShape {
   demoResults?: TestResult[];
 }
 
+export interface SiteSettings {
+  loginLogo?: string;
+  sidebarLogo?: string;
+  siteTitle?: string;
+  siteSubtitle?: string;
+  demoMaxAttempts?: number;
+}
+
 export interface Question {
   id: string | number;
   subjectId: string | number; // Savol fanga bog'lanadi (Baza)
@@ -65,10 +75,38 @@ export interface TestResult {
   participantId: string | number;
   moduleId: string | number;
   groupId: string | number;
+  attemptId?: string | number;
   correctAnswers: number;
   totalQuestions: number;
   score: number;
   isPassed: boolean;
   date: string;
   timeTaken?: number;
+  archiveFolderId?: string | number | null;
+}
+
+export interface ResultArchiveFolder {
+  id: string | number;
+  name: string;
+  created_at: string;
+  resultIds: Array<string | number>;
+  resultsCount: number;
+}
+
+export interface TestAttempt {
+  id: string | number;
+  participantId: string | number;
+  moduleId: string | number;
+  groupId?: string | number;
+  moduleName: string;
+  isDemo: boolean;
+  attemptKey: string;
+  questions: Question[];
+  answers: Record<string, number>;
+  currentQuestionIndex: number;
+  startedAt: string;
+  expiresAt: string;
+  completedAt?: string | null;
+  timeRemaining: number;
+  settings: Module['settings'];
 }
