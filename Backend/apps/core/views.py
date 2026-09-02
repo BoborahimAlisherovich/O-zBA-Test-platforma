@@ -262,17 +262,17 @@ class SiteSettingViewSet(viewsets.ModelViewSet):
 
 def _build_snapshot_payload(user):
     if user.role in {"ADMIN", "MANAGER"}:
-        users = User.objects.select_related("group").filter(is_archived=False).order_by("-id")
-        archived_users = User.objects.select_related("group").filter(is_archived=True).order_by("-id")
+        users = User.objects.none()
+        archived_users = User.objects.none()
         groups = Group.objects.prefetch_related("modules").all().order_by("-id")
         subjects = Subject.objects.filter(is_demo=False).order_by("-id")
         demo_subjects = Subject.objects.filter(is_demo=True).order_by("-id")
         modules = Module.objects.filter(is_demo=False).prefetch_related("groups", "subject_configs").order_by("-id")
         demo_modules = Module.objects.filter(is_demo=True).prefetch_related("groups", "subject_configs").order_by("-id")
-        questions = Question.objects.filter(subject__is_demo=False).order_by("-id")
-        demo_questions = Question.objects.filter(subject__is_demo=True).order_by("-id")
-        results = TestResult.objects.filter(module__is_demo=False, archive_folder__isnull=True).order_by("-date")
-        archived_results = TestResult.objects.filter(module__is_demo=False, archive_folder__isnull=False).order_by("-date")
+        questions = Question.objects.none()
+        demo_questions = Question.objects.none()
+        results = TestResult.objects.none()
+        archived_results = TestResult.objects.none()
         demo_results = TestResult.objects.filter(module__is_demo=True).order_by("-date")
         result_archive_folders = ResultArchiveFolder.objects.prefetch_related("results").all().order_by("-created_at", "-id")
     else:

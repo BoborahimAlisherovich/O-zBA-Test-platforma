@@ -226,7 +226,11 @@ const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({ user, data,
   }, [activeTest, activeAttemptId]);
 
   useEffect(() => {
-    clearAttemptCache();
+    const cache = readAttemptCache();
+    const activeCachedAttempt = Object.values(cache).find((attempt: any) => attempt.timeRemaining > 0 && !attempt.isPassed);
+    if (activeCachedAttempt) {
+      applyAttemptToState(activeCachedAttempt as any);
+    }
   }, [user.id]);
 
   useEffect(() => {
