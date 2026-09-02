@@ -1,0 +1,24 @@
+---
+deployment:
+  tasks:
+    # --- BACKEND DEPLOYMENT ---
+    # Set the path to the live backend folder
+    - export BACKEND_PATH=/home/uzbamala/apimt.uzbamalaka.uz
+    
+    # Copy all files from the Backend folder (except virtual envs if any) to the live folder
+    # We use cp -R to copy directories recursively. 
+    - /bin/cp -R Backend/apps $BACKEND_PATH/
+    - /bin/cp -R Backend/config $BACKEND_PATH/
+    - /bin/cp Backend/manage.py $BACKEND_PATH/
+    - /bin/cp Backend/requirements.txt $BACKEND_PATH/
+    
+    # Restart the Django server automatically!
+    - /bin/mkdir -p $BACKEND_PATH/tmp
+    - /bin/touch $BACKEND_PATH/tmp/restart.txt
+
+    # --- FRONTEND DEPLOYMENT ---
+    # Set the path to the live frontend folder
+    - export FRONTEND_PATH=/home/uzbamala/mt.uzbamalaka.uz
+    
+    # Copy all compiled React files from the dist folder to the live frontend folder
+    - /bin/cp -R Frontend/dist/* $FRONTEND_PATH/
