@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+﻿import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SiteSettings, User, Group, Subject, Module, Question, UserRole, TestResult, ResultArchiveFolder } from '../types';
 import {
@@ -300,60 +300,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
   };
 
   const getModuleName = (moduleId: any) => {
-    if (!moduleId) return "—";
+    if (!moduleId) return "вЂ”";
     const foundModule = (data.modules || []).find((m: Module) => String(m.id).trim() === String(moduleId).trim());
-    return foundModule ? foundModule.name : "—";
+    return foundModule ? foundModule.name : "вЂ”";
   };
 
   const getParticipantWorkplace = (participantId: any) => {
-    if (!participantId) return "—";
+    if (!participantId) return "вЂ”";
     const foundUser = (data.users || []).find((u: User) => String(u.id).trim() === String(participantId).trim())
       || archivedUsers.find((u: User) => String(u.id).trim() === String(participantId).trim());
-    return foundUser?.workplace || "—";
+    return foundUser?.workplace || "вЂ”";
   };
 
   const getParticipantGroupName = (participantId: any) => {
-    if (!participantId) return "—";
+    if (!participantId) return "вЂ”";
     const foundUser = (data.users || []).find((u: User) => String(u.id).trim() === String(participantId).trim())
       || archivedUsers.find((u: User) => String(u.id).trim() === String(participantId).trim());
-    return (data.groups || []).find((g: Group) => String(g.id) === String(foundUser?.groupId))?.name || "—";
+    return (data.groups || []).find((g: Group) => String(g.id) === String(foundUser?.groupId))?.name || "вЂ”";
   };
 
   const formatDateUz = (value?: string) => {
-    if (!value) return "—";
+    if (!value) return "вЂ”";
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
+    if (Number.isNaN(date.getTime())) return "вЂ”";
     return date.toLocaleDateString('uz-UZ', { year: 'numeric', month: '2-digit', day: '2-digit' });
   };
 
-  const filteredUsers = useMemo(() => {
-    return (data.users || []).filter((u: User) => {
-      const groupName = (data.groups || []).find((g: Group) => String(g.id) === String(u.groupId))?.name || '';
-      return (
-        u.fullName.toLowerCase().includes(userFilters.fullName.toLowerCase()) &&
-        u.username.toLowerCase().includes(userFilters.username.toLowerCase()) &&
-        (u.workplace || '').toLowerCase().includes(userFilters.workplace.toLowerCase()) &&
-        (!userFilters.groupId || String(u.groupId || '') === String(userFilters.groupId) || groupName.toLowerCase().includes(userFilters.groupId.toLowerCase()))
-      );
-    });
-  }, [data.users, data.groups, userFilters]);
+  
+  const ITEMS_PER_PAGE = 50;
+  const [userPage, setUserPage] = useState(1);
+  const paginatedUsers = useMemo(() => filteredUsers.slice((userPage - 1) * ITEMS_PER_PAGE, userPage * ITEMS_PER_PAGE), [filteredUsers, userPage]);
 
-  const filteredResults = useMemo(() => {
-    return (data.results || []).filter((r: TestResult) => {
-      const participantName = getParticipantName(r.participantId).toLowerCase();
-      const workplace = getParticipantWorkplace(r.participantId).toLowerCase();
-      const groupName = getParticipantGroupName(r.participantId).toLowerCase();
-      const resultDate = r.date ? new Date(r.date).toISOString().slice(0, 10) : '';
-      const statusValue = r.isPassed ? 'passed' : 'failed';
-      return (
-        participantName.includes(resultFilters.fullName.toLowerCase()) &&
-        workplace.includes(resultFilters.workplace.toLowerCase()) &&
-        (!resultFilters.groupId || groupName.includes(resultFilters.groupId.toLowerCase()) || String(r.groupId || '') === String(resultFilters.groupId)) &&
-        (!resultFilters.date || resultDate === resultFilters.date) &&
-        (!resultFilters.status || statusValue === resultFilters.status)
-      );
-    });
-  }, [data.results, resultFilters, data.users, archivedUsers, data.groups]);
+  
+  const [resultPage, setResultPage] = useState(1);
+  const paginatedResults = useMemo(() => filteredResults.slice((resultPage - 1) * ITEMS_PER_PAGE, resultPage * ITEMS_PER_PAGE), [filteredResults, resultPage]);
 
   // --- ACTIONS ---
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -487,10 +467,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
 
       return {
         "F.I.SH": user?.fullName || "Noma'lum",
-        "Login": user?.username || "—",
-        "Asosiy ish joyi": user?.workplace || "—",
-        "Guruh": group?.name || "—",
-        "Test Moduli": module?.name || "—",
+        "Login": user?.username || "вЂ”",
+        "Asosiy ish joyi": user?.workplace || "вЂ”",
+        "Guruh": group?.name || "вЂ”",
+        "Test Moduli": module?.name || "вЂ”",
         "To'g'ri javoblar": r.correctAnswers,
         "Jami savollar": r.totalQuestions,
         "To'plangan ball": r.score,
@@ -634,9 +614,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
       "T/r": idx + 1,
       "F.I.SH": u.fullName,
       "Login": u.username,
-      "Asosiy ish joyi": u.workplace || '—',
+      "Asosiy ish joyi": u.workplace || 'вЂ”',
       "Rol": u.role,
-      "Guruh": group?.name || '—'
+      "Guruh": group?.name || 'вЂ”'
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -921,7 +901,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                       <input
                         type="checkbox"
                         checked={filteredResults.length > 0 && selectedResultIds.length === filteredResults.length}
-                        onChange={(e) => setSelectedResultIds(e.target.checked ? filteredResults.map((r: TestResult) => r.id) : [])}
+                        onChange={(e) => setSelectedResultIds(e.target.checked ? paginatedResults.map((r: TestResult) => r.id) : [])}
                         className="h-4 w-4 rounded border-slate-300"
                       />
                     </th>
@@ -935,7 +915,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {filteredResults.map((r: TestResult) => (
+                  {paginatedResults.map((r: TestResult) => (
                     <tr key={r.id} className="hover:bg-slate-50 transition-colors">
                       <td className={`${tdClass} text-center`}>
                         <input
@@ -1001,7 +981,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                       <div>
                         <p className="font-black text-slate-900">{folder.name}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {folder.resultsCount} ta natija • {formatDateUz(folder.created_at)}
+                          {folder.resultsCount} ta natija вЂў {formatDateUz(folder.created_at)}
                         </p>
                       </div>
                       <List className="w-5 h-5 text-slate-400" />
@@ -1246,7 +1226,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                   <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                     <td className={`${tdClass} font-bold text-slate-900`}>{u.fullName}</td>
                     <td className={`${tdClass} text-slate-600 font-medium`}>{u.username}</td>
-                    <td className={`${tdClass} text-slate-600`}>{u.workplace || '—'}</td>
+                    <td className={`${tdClass} text-slate-600`}>{u.workplace || 'вЂ”'}</td>
                     <td className={tdClass}>
                       {(() => {
                         const status = getGroupUserStatus(u.id, selectedGroupId || '');
@@ -1617,19 +1597,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {filteredUsers.map((u: User) => (
+                  {paginatedUsers.map((u: User) => (
                     <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                       <td className={`${tdClass} text-slate-900 font-bold`}>{u.fullName}</td>
                       <td className={`${tdClass} text-slate-600 font-mono`}>{u.username}</td>
-                      <td className={`${tdClass} text-slate-600`}>{u.workplace || '—'}</td>
-                      <td className={`${tdClass} text-slate-500`}>{u.password || '—'}</td>
+                      <td className={`${tdClass} text-slate-600`}>{u.workplace || 'вЂ”'}</td>
+                      <td className={`${tdClass} text-slate-500`}>{u.password || 'вЂ”'}</td>
                       <td className={tdClass}>
                         <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${u.role === UserRole.ADMIN ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
                           {u.role === UserRole.PARTICIPANT ? 'TINGLOVCHI' : u.role}
                         </span>
                       </td>
                       <td className={`${tdClass} text-slate-600`}>
-                        {(data.groups || []).find((g: Group) => String(g.id) === String(u.groupId))?.name || '—'}
+                        {(data.groups || []).find((g: Group) => String(g.id) === String(u.groupId))?.name || 'вЂ”'}
                       </td>
                       <td className={`${tdClass} text-right space-x-1`}>
                         <button onClick={() => { setEditingId(String(u.id)); setUserForm({ fullName: u.fullName, username: u.username, password: u.password || '', workplace: u.workplace || '', role: u.role, groupId: String(u.groupId || '') }); setIsUserModalOpen(true); }} className="p-2 text-indigo-400 hover:text-indigo-600"><Edit2 className="w-5 h-5" /></button>
@@ -1720,7 +1700,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                             <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                               <td className={`${tdClass} text-slate-900 font-bold`}>{u.fullName}</td>
                               <td className={`${tdClass} text-slate-600 font-mono`}>{u.username}</td>
-                              <td className={`${tdClass} text-slate-600`}>{u.workplace || '—'}</td>
+                              <td className={`${tdClass} text-slate-600`}>{u.workplace || 'вЂ”'}</td>
                               <td className={tdClass}>
                                 <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${u.role === UserRole.ADMIN ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
                                   {u.role === UserRole.PARTICIPANT ? 'TINGLOVCHI' : u.role}
@@ -1835,7 +1815,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                     )}
                     className="rounded-xl bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-widest text-white"
                   >
-                    {selectedResultIds.length === filteredResults.length && filteredResults.length > 0 ? 'Belgilashni bekor qilish' : 'Ko‘rinayotganlarni belgilash'}
+                    {selectedResultIds.length === filteredResults.length && filteredResults.length > 0 ? 'Belgilashni bekor qilish' : 'KoвЂrinayotganlarni belgilash'}
                   </button>
                   <span className="text-sm font-bold text-slate-600">
                     Tanlangan natijalar: {selectedResultIds.length}
@@ -1866,7 +1846,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                           <input
                             type="checkbox"
                             checked={filteredResults.length > 0 && selectedResultIds.length === filteredResults.length}
-                            onChange={(e) => setSelectedResultIds(e.target.checked ? filteredResults.map((r: TestResult) => r.id) : [])}
+                            onChange={(e) => setSelectedResultIds(e.target.checked ? paginatedResults.map((r: TestResult) => r.id) : [])}
                             className="h-4 w-4 rounded border-slate-300"
                           />
                         </th>
@@ -1877,7 +1857,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredResults.map((r: TestResult) => (
+                      {paginatedResults.map((r: TestResult) => (
                         <tr key={r.id} className="hover:bg-slate-50 transition-colors">
                           <td className={`${tdClass} text-center`}>
                             <input
@@ -1922,7 +1902,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                         <div>
                           <p className="font-black text-slate-900">{folder.name}</p>
                           <p className="mt-1 text-xs text-slate-500">
-                            {folder.resultsCount} ta natija • {formatDateUz(folder.created_at)}
+                            {folder.resultsCount} ta natija вЂў {formatDateUz(folder.created_at)}
                           </p>
                         </div>
                         <button
@@ -2275,3 +2255,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
 };
 
 export default AdminDashboard;
+
+
+
