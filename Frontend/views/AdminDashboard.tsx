@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SiteSettings, User, Group, Subject, Module, Question, UserRole, TestResult, ResultArchiveFolder } from '../types';
 import {
@@ -300,29 +300,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
   };
 
   const getModuleName = (moduleId: any) => {
-    if (!moduleId) return "вЂ”";
+    if (!moduleId) return "—";
     const foundModule = (data.modules || []).find((m: Module) => String(m.id).trim() === String(moduleId).trim());
-    return foundModule ? foundModule.name : "вЂ”";
+    return foundModule ? foundModule.name : "—";
   };
 
   const getParticipantWorkplace = (participantId: any) => {
-    if (!participantId) return "вЂ”";
+    if (!participantId) return "—";
     const foundUser = (data.users || []).find((u: User) => String(u.id).trim() === String(participantId).trim())
       || archivedUsers.find((u: User) => String(u.id).trim() === String(participantId).trim());
-    return foundUser?.workplace || "вЂ”";
+    return foundUser?.workplace || "—";
   };
 
   const getParticipantGroupName = (participantId: any) => {
-    if (!participantId) return "вЂ”";
+    if (!participantId) return "—";
     const foundUser = (data.users || []).find((u: User) => String(u.id).trim() === String(participantId).trim())
       || archivedUsers.find((u: User) => String(u.id).trim() === String(participantId).trim());
-    return (data.groups || []).find((g: Group) => String(g.id) === String(foundUser?.groupId))?.name || "вЂ”";
+    return (data.groups || []).find((g: Group) => String(g.id) === String(foundUser?.groupId))?.name || "—";
   };
 
   const formatDateUz = (value?: string) => {
-    if (!value) return "вЂ”";
+    if (!value) return "—";
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "вЂ”";
+    if (Number.isNaN(date.getTime())) return "—";
     return date.toLocaleDateString('uz-UZ', { year: 'numeric', month: '2-digit', day: '2-digit' });
   };
 
@@ -467,10 +467,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
 
       return {
         "F.I.SH": user?.fullName || "Noma'lum",
-        "Login": user?.username || "вЂ”",
-        "Asosiy ish joyi": user?.workplace || "вЂ”",
-        "Guruh": group?.name || "вЂ”",
-        "Test Moduli": module?.name || "вЂ”",
+        "Login": user?.username || "—",
+        "Asosiy ish joyi": user?.workplace || "—",
+        "Guruh": group?.name || "—",
+        "Test Moduli": module?.name || "—",
         "To'g'ri javoblar": r.correctAnswers,
         "Jami savollar": r.totalQuestions,
         "To'plangan ball": r.score,
@@ -614,9 +614,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
       "T/r": idx + 1,
       "F.I.SH": u.fullName,
       "Login": u.username,
-      "Asosiy ish joyi": u.workplace || 'вЂ”',
+      "Asosiy ish joyi": u.workplace || '—',
       "Rol": u.role,
-      "Guruh": group?.name || 'вЂ”'
+      "Guruh": group?.name || '—'
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -981,7 +981,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                       <div>
                         <p className="font-black text-slate-900">{folder.name}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {folder.resultsCount} ta natija вЂў {formatDateUz(folder.created_at)}
+                          {folder.resultsCount} ta natija • {formatDateUz(folder.created_at)}
                         </p>
                       </div>
                       <List className="w-5 h-5 text-slate-400" />
@@ -1222,11 +1222,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {data.users.filter((u:any)=>String(u.groupId) === String(selectedGroupId)).map((u:any) => (
+                {(data.users || []).filter((u:any)=>String(u.groupId) === String(selectedGroupId)).map((u:any) => (
                   <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                     <td className={`${tdClass} font-bold text-slate-900`}>{u.fullName}</td>
                     <td className={`${tdClass} text-slate-600 font-medium`}>{u.username}</td>
-                    <td className={`${tdClass} text-slate-600`}>{u.workplace || 'вЂ”'}</td>
+                    <td className={`${tdClass} text-slate-600`}>{u.workplace || '—'}</td>
                     <td className={tdClass}>
                       {(() => {
                         const status = getGroupUserStatus(u.id, selectedGroupId || '');
@@ -1601,15 +1601,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                     <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                       <td className={`${tdClass} text-slate-900 font-bold`}>{u.fullName}</td>
                       <td className={`${tdClass} text-slate-600 font-mono`}>{u.username}</td>
-                      <td className={`${tdClass} text-slate-600`}>{u.workplace || 'вЂ”'}</td>
-                      <td className={`${tdClass} text-slate-500`}>{u.password || 'вЂ”'}</td>
+                      <td className={`${tdClass} text-slate-600`}>{u.workplace || '—'}</td>
+                      <td className={`${tdClass} text-slate-500`}>{u.password || '—'}</td>
                       <td className={tdClass}>
                         <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${u.role === UserRole.ADMIN ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
                           {u.role === UserRole.PARTICIPANT ? 'TINGLOVCHI' : u.role}
                         </span>
                       </td>
                       <td className={`${tdClass} text-slate-600`}>
-                        {(data.groups || []).find((g: Group) => String(g.id) === String(u.groupId))?.name || 'вЂ”'}
+                        {(data.groups || []).find((g: Group) => String(g.id) === String(u.groupId))?.name || '—'}
                       </td>
                       <td className={`${tdClass} text-right space-x-1`}>
                         <button onClick={() => { setEditingId(String(u.id)); setUserForm({ fullName: u.fullName, username: u.username, password: u.password || '', workplace: u.workplace || '', role: u.role, groupId: String(u.groupId || '') }); setIsUserModalOpen(true); }} className="p-2 text-indigo-400 hover:text-indigo-600"><Edit2 className="w-5 h-5" /></button>
@@ -1700,7 +1700,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                             <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                               <td className={`${tdClass} text-slate-900 font-bold`}>{u.fullName}</td>
                               <td className={`${tdClass} text-slate-600 font-mono`}>{u.username}</td>
-                              <td className={`${tdClass} text-slate-600`}>{u.workplace || 'вЂ”'}</td>
+                              <td className={`${tdClass} text-slate-600`}>{u.workplace || '—'}</td>
                               <td className={tdClass}>
                                 <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${u.role === UserRole.ADMIN ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
                                   {u.role === UserRole.PARTICIPANT ? 'TINGLOVCHI' : u.role}
@@ -1815,7 +1815,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                     )}
                     className="rounded-xl bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-widest text-white"
                   >
-                    {selectedResultIds.length === filteredResults.length && filteredResults.length > 0 ? 'Belgilashni bekor qilish' : 'KoвЂrinayotganlarni belgilash'}
+                    {selectedResultIds.length === filteredResults.length && filteredResults.length > 0 ? 'Belgilashni bekor qilish' : 'Ko‘rinayotganlarni belgilash'}
                   </button>
                   <span className="text-sm font-bold text-slate-600">
                     Tanlangan natijalar: {selectedResultIds.length}
@@ -1902,7 +1902,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
                         <div>
                           <p className="font-black text-slate-900">{folder.name}</p>
                           <p className="mt-1 text-xs text-slate-500">
-                            {folder.resultsCount} ta natija вЂў {formatDateUz(folder.created_at)}
+                            {folder.resultsCount} ta natija • {formatDateUz(folder.created_at)}
                           </p>
                         </div>
                         <button
