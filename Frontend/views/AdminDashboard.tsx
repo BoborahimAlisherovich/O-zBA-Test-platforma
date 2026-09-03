@@ -328,6 +328,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
 
   
   const ITEMS_PER_PAGE = 50;
+
+  const filteredUsers = useMemo(() => {
+    return (data.users || []).filter((u: User) => {
+      if (!userSearchTerm) return true;
+      const term = userSearchTerm.toLowerCase();
+      return (u.fullName || '').toLowerCase().includes(term) || (u.username || '').toLowerCase().includes(term);
+    });
+  }, [data.users, userSearchTerm]);
+
+  const filteredResults = useMemo(() => {
+    return isDemoTab ? (data.demoResults || []) : (data.results || []);
+  }, [data.results, data.demoResults, isDemoTab]);
+
   const [userPage, setUserPage] = useState(1);
   const paginatedUsers = useMemo(() => filteredUsers.slice((userPage - 1) * ITEMS_PER_PAGE, userPage * ITEMS_PER_PAGE), [filteredUsers, userPage]);
 
