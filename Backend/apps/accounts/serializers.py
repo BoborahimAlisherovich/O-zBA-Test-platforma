@@ -21,6 +21,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "fullName", "username", "password", "workplace", "role", "groupId", "isArchived", "profilePhoto", "profilePhotoFile"]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Barcha superuserlar (masalan terminaldan ochilganlar) frontend uchun avtomatik ADMIN hisoblanadi
+        if instance.is_superuser:
+            data['role'] = 'ADMIN'
+        return data
+
     def _absolute_or_relative(self, url):
         request = self.context.get("request")
         if not request:
