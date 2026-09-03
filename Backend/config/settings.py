@@ -96,24 +96,42 @@ ASGI_APPLICATION = "config.asgi.application"
 default_sqlite_path = BASE_DIR / "db.sqlite3"
 legacy_sqlite_path = Path(os.getenv("LEGACY_SQLITE_PATH", str(default_sqlite_path)))
 database_engine = os.getenv("DATABASE_ENGINE", "").strip().lower()
-postgres_name = os.getenv("POSTGRES_DB", "").strip()
-use_postgres = database_engine == "postgres" or bool(postgres_name)
+
+use_postgres = database_engine == "postgres"
+use_mysql = database_engine == "mysql"
 
 if use_postgres:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": postgres_name or "artedu_test",
+            "NAME": os.getenv("POSTGRES_DB", "artedu_test"),
             "USER": os.getenv("POSTGRES_USER", "postgres"),
             "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
             "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),
             "PORT": os.getenv("POSTGRES_PORT", "5432"),
             "CONN_MAX_AGE": int(os.getenv("POSTGRES_CONN_MAX_AGE", "60")),
-        },
-        "sqlite_legacy": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": legacy_sqlite_path,
-        },
+        }
+    }
+elif use_mysql:
+    try:
+        import pymysql
+        pymysql.install_as_MySQLdb()
+    except ImportError:
+        pass
+        
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.getenv("POSTGRES_DB", "artedu_test"), # using same env var names for simplicity
+            "USER": os.getenv("POSTGRES_USER", "root"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
+            "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),
+            "PORT": os.getenv("POSTGRES_PORT", "3306"),
+            "OPTIONS": {
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+                "charset": "utf8mb4",
+            },
+        }
     }
 else:
     DATABASES = {
