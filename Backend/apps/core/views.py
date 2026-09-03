@@ -691,8 +691,17 @@ def import_questions_view(request):
             str(_get_value_by_aliases(row, ["C", "S", "c", "s"])).strip(),
             str(_get_value_by_aliases(row, ["D", "d"])).strip(),
         ]
-        correct_raw = _get_value_by_aliases(row, ["To'g'ri javob", "correct", "correctindex"])
-        correct_index = _to_int(correct_raw, 1) - 1
+        correct_raw = str(_get_value_by_aliases(row, ["To'g'ri javob", "correct", "correctindex"])).strip().upper()
+        if correct_raw == 'A':
+            correct_index = 0
+        elif correct_raw == 'B':
+            correct_index = 1
+        elif correct_raw in ('C', 'S'):
+            correct_index = 2
+        elif correct_raw == 'D':
+            correct_index = 3
+        else:
+            correct_index = _to_int(correct_raw, 1) - 1
 
         if not text or any(not option for option in options):
             skipped += 1
@@ -700,7 +709,7 @@ def import_questions_view(request):
             continue
         if correct_index not in {0, 1, 2, 3}:
             skipped += 1
-            errors.append(f"{index}-qator: to'g'ri javob 1-4 oralig'ida bo'lishi kerak.")
+            errors.append(f"{index}-qator: to'g'ri javob A, B, C yoki D bo'lishi kerak.")
             continue
 
         Question.objects.create(
