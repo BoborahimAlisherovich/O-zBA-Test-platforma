@@ -3,7 +3,7 @@ deployment:
   tasks:
     # --- BACKEND DEPLOYMENT ---
     # Set the path to the live backend folder
-    - export BACKEND_PATH=/home/uzbamala/apimt.uzbamalaka.uz
+    - export BACKEND_PATH=/home/uzbamala/apitest.uzbamalaka.uz
     
     # Copy all files from the Backend folder (except virtual envs if any) to the live folder
     # We use cp -R to copy directories recursively. 
@@ -18,7 +18,7 @@ deployment:
 
     # --- FRONTEND DEPLOYMENT ---
     # Set the path to the live frontend folder
-    - export FRONTEND_PATH=/home/uzbamala/mt.uzbamalaka.uz
+    - export FRONTEND_PATH=/home/uzbamala/test.uzbamalaka.uz
     
     # Copy all compiled React files from the dist folder to the live frontend folder
     - /bin/cp -R Frontend/dist/* $FRONTEND_PATH/
