@@ -269,11 +269,12 @@ def _build_snapshot_payload(user):
         demo_subjects = Subject.objects.filter(is_demo=True).order_by("-id")
         modules = Module.objects.filter(is_demo=False).prefetch_related("groups", "subject_configs").order_by("-id")
         demo_modules = Module.objects.filter(is_demo=True).prefetch_related("groups", "subject_configs").order_by("-id")
-        questions = Question.objects.filter(subject__is_demo=False).order_by("-id")
-        demo_questions = Question.objects.filter(subject__is_demo=True).order_by("-id")
-        results = TestResult.objects.filter(module__is_demo=False, archive_folder__isnull=True).order_by("-date")
-        archived_results = TestResult.objects.filter(module__is_demo=False, archive_folder__isnull=False).order_by("-date")
-        demo_results = TestResult.objects.filter(module__is_demo=True).order_by("-date")
+        # Og'ir ma'lumotlar (savollar, natijalar) snapshot'dan olib tashlandi — lazy yuklanadi
+        questions = Question.objects.none()
+        demo_questions = Question.objects.none()
+        results = TestResult.objects.none()
+        archived_results = TestResult.objects.none()
+        demo_results = TestResult.objects.none()
         result_archive_folders = ResultArchiveFolder.objects.prefetch_related("results").all().order_by("-created_at", "-id")
     else:
         group_id = user.group_id
@@ -746,3 +747,29 @@ def sync_snapshot_view(request):
         {"detail": "snapshot/sync endpoint bekor qilingan. Resource-based CRUD endpointlardan foydalaning."},
         status=status.HTTP_410_GONE,
     )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdminOnly])
+def lazy_questions_view(request):
+    """Savollarni lazy yuklash — faqat 'Savollar' tabi ochilganda chaqiriladi."""
+    is_demo = request.query_params.get("is_demo", "false").lower() in {"1", "true", "yes"}
+    questions = Question.objects.filter(subject__is_demo=is_demo).order_by("-id")
+    serializer = QuestionSerializer(questions, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdminOnly])
+def lazy_results_view(request):
+    """Natijalarni lazy yuklash — faqat 'Natijalar' tabi ochilganda chaqiriladi."""
+    is_demo = request.query_params.get("is_demo", "false").lower() in {"1", "true", "yes"}
+    archived = request.query_params.get("archived", "false").lower() in {"1", "true", "yes"}
+    if is_demo:
+        results = TestResult.objects.filter(module__is_demo=True).order_by("-date")
+    elif archived:
+        results = TestResult.objects.filter(module__is_demo=False, archive_folder__isnull=False).order_by("-date")
+    else:
+        results = TestResult.objects.filter(module__is_demo=False, archive_folder__isnull=True).order_by("-date")
+    serializer = TestResultSerializer(results, many=True)
+    return Response(serializer.data)

@@ -15,6 +15,8 @@ from .views import (
     import_questions_view,
     import_users_view,
     health_view,
+    lazy_questions_view,
+    lazy_results_view,
     site_settings_view,
     snapshot_view,
     start_test_view,
@@ -42,6 +44,8 @@ urlpatterns = [
     path("tests/start/", start_test_view),
     path("tests/progress/", save_test_progress_view),
     path("tests/submit/", submit_test_view),
+    path("lazy/questions/", lazy_questions_view),
+    path("lazy/results/", lazy_results_view),
     path("snapshot/", snapshot_view),
     path("snapshot/sync/", sync_snapshot_view),
 ]

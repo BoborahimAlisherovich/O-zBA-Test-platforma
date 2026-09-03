@@ -15,6 +15,8 @@ import {
   deleteResult,
   deleteSubject,
   deleteUser,
+  getLazyQuestions,
+  getLazyResults,
   importQuestions,
   importUsers,
   updateGroup,
@@ -42,7 +44,7 @@ interface AdminDashboardProps {
   reloadData: () => Promise<void>;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadData }) => {
   const loadXLSX = () => import('xlsx');
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as any) || 'subjects';
@@ -50,6 +52,86 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
   const isDemoTab = activeTab === 'demo-subjects' || activeTab === 'demo-tests';
   const isSubjectsTab = activeTab === 'subjects' || activeTab === 'demo-subjects';
   const isTestsTab = activeTab === 'tests' || activeTab === 'demo-tests';
+
+  // --- LAZY LOADING ---
+  const [lazyQuestions, setLazyQuestions] = useState<any[]>([]);
+  const [lazyDemoQuestions, setLazyDemoQuestions] = useState<any[]>([]);
+  const [lazyResults, setLazyResults] = useState<any[]>([]);
+  const [lazyArchivedResults, setLazyArchivedResults] = useState<any[]>([]);
+  const [lazyDemoResults, setLazyDemoResults] = useState<any[]>([]);
+  const [lazyLoading, setLazyLoading] = useState(false);
+  const [loadedTabs, setLoadedTabs] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const loadTabData = async () => {
+      // Savollar tabi
+      if (isSubjectsTab && !loadedTabs[isDemoTab ? 'demo-questions' : 'questions']) {
+        setLazyLoading(true);
+        try {
+          const q = await getLazyQuestions(isDemoTab);
+          if (isDemoTab) setLazyDemoQuestions(q || []);
+          else setLazyQuestions(q || []);
+          setLoadedTabs(prev => ({ ...prev, [isDemoTab ? 'demo-questions' : 'questions']: true }));
+        } catch (e) { console.error('Lazy questions error:', e); }
+        setLazyLoading(false);
+      }
+      // Natijalar tabi
+      if (activeTab === 'results' && !loadedTabs['results']) {
+        setLazyLoading(true);
+        try {
+          const [r, ar, dr] = await Promise.all([
+            getLazyResults(false, false),
+            getLazyResults(false, true),
+            getLazyResults(true, false),
+          ]);
+          setLazyResults(r || []);
+          setLazyArchivedResults(ar || []);
+          setLazyDemoResults(dr || []);
+          setLoadedTabs(prev => ({ ...prev, results: true }));
+        } catch (e) { console.error('Lazy results error:', e); }
+        setLazyLoading(false);
+      }
+      // Monitoring tabi ham natijalar kerak
+      if (activeTab === 'monitoring' && !loadedTabs['results']) {
+        setLazyLoading(true);
+        try {
+          const [r, dr] = await Promise.all([
+            getLazyResults(false, false),
+            getLazyResults(true, false),
+          ]);
+          setLazyResults(r || []);
+          setLazyDemoResults(dr || []);
+          setLoadedTabs(prev => ({ ...prev, results: true }));
+        } catch (e) { console.error('Lazy results error:', e); }
+        setLazyLoading(false);
+      }
+    };
+    loadTabData();
+  }, [activeTab, isDemoTab]);
+
+  // Lazy yuklangan ma'lumotlarni data ob'ektiga birlashtirish
+  const enrichedData = useMemo(() => ({
+    ...rawData,
+    questions: lazyQuestions.length > 0 ? lazyQuestions : (rawData.questions || []),
+    demoQuestions: lazyDemoQuestions.length > 0 ? lazyDemoQuestions : (rawData.demoQuestions || []),
+    results: lazyResults.length > 0 ? lazyResults : (rawData.results || []),
+    archivedResults: lazyArchivedResults.length > 0 ? lazyArchivedResults : (rawData.archivedResults || []),
+    demoResults: lazyDemoResults.length > 0 ? lazyDemoResults : (rawData.demoResults || []),
+  }), [rawData, lazyQuestions, lazyDemoQuestions, lazyResults, lazyArchivedResults, lazyDemoResults]);
+
+  // Barcha data.X ishlatishlar uchun enrichedData'ni data deb nomlash
+  const data = enrichedData;
+
+  // reloadData o'rnatilganda lazy cache'ni tozalash
+  const reloadAllData = async () => {
+    setLoadedTabs({});
+    setLazyQuestions([]);
+    setLazyDemoQuestions([]);
+    setLazyResults([]);
+    setLazyArchivedResults([]);
+    setLazyDemoResults([]);
+    await reloadData();
+  };
   
   // Detail views
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
@@ -145,7 +227,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
   const runAdminMutation = async (work: () => Promise<any>, successMessage?: string) => {
     try {
       await work();
-      await reloadData();
+      await reloadAllData();
       if (successMessage) alert(successMessage);
     } catch (err: any) {
       alert(`Xatolik: ${err?.message || "Noma'lum xato"}`);
@@ -605,7 +687,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
     if (!file || !selectedSubjectId) return;
     try {
       const result = await importQuestions(file, selectedSubjectId);
-      await reloadData();
+      await reloadAllData();
       alert(`${result.created || 0} ta savol yuklandi.${result.skipped ? ` O'tkazib yuborildi: ${result.skipped}` : ''}`);
     } catch (err: any) {
       alert(`Import xatosi: ${err?.message || "Noma'lum xato"}`);
@@ -644,7 +726,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
     if (!file) return;
     try {
       const result = await importUsers(file);
-      await reloadData();
+      await reloadAllData();
       const errors = Array.isArray(result.errors) && result.errors.length ? `\n${result.errors.join('\n')}` : '';
       alert(`${result.created || 0} ta yaratildi, ${result.updated || 0} ta yangilandi, ${result.skipped || 0} ta o'tkazib yuborildi.${errors}`);
     } catch (err: any) {
@@ -689,6 +771,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, reloadData }) => 
 
   return (
     <div className="max-w-7xl mx-auto pb-20 animate-in fade-in duration-500">
+      {lazyLoading && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl shadow-lg animate-pulse">
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          Ma'lumotlar yuklanmoqda...
+        </div>
+      )}
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
         {[

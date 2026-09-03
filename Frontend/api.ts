@@ -246,6 +246,14 @@ export async function getSiteSettings() {
   return request('/site-settings/', {}, false);
 }
 
+export async function getLazyQuestions(isDemo = false) {
+  return request(`/lazy/questions/?is_demo=${isDemo}`);
+}
+
+export async function getLazyResults(isDemo = false, archived = false) {
+  return request(`/lazy/results/?is_demo=${isDemo}&archived=${archived}`);
+}
+
 export async function createUser(payload: any) {
   return request('/users/', { method: 'POST', body: JSON.stringify(payload) });
 }
