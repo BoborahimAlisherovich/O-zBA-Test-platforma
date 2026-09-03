@@ -725,7 +725,7 @@ def import_questions_view(request):
 @permission_classes([IsAuthenticated])
 def snapshot_view(request):
     payload = _build_snapshot_payload(request.user)
-    if request.user.role == "TINGLOVCHI":
+    if request.user.role == "TINGLOVCHI" and not request.user.is_superuser:
         return Response(ParticipantSnapshotSerializer(payload, context={"request": request}).data)
     return Response(SnapshotSerializer(payload, context={"request": request}).data)
 
