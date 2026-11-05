@@ -45,6 +45,11 @@ class User(AbstractUser):
         choices=UserRole.choices,
         default=UserRole.PARTICIPANT
     )
+    forced_score = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Majburiy imtihon bali"
+    )
 
     def __str__(self):
         return f"{self.username} ({self.role})"

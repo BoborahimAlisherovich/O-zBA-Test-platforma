@@ -16,13 +16,20 @@ class UserSerializer(serializers.ModelSerializer):
     isArchived = serializers.BooleanField(source="is_archived", required=False)
     profilePhoto = serializers.SerializerMethodField()
     profilePhotoFile = serializers.ImageField(source="profile_photo", write_only=True, required=False, allow_null=True)
+    forcedScore = serializers.IntegerField(source="forced_score", required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ["id", "fullName", "username", "password", "workplace", "role", "groupId", "isArchived", "profilePhoto", "profilePhotoFile"]
+        fields = ["id", "fullName", "username", "password", "workplace", "role", "groupId", "isArchived", "profilePhoto", "profilePhotoFile", "forcedScore"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        # Faqat admin yoki superuser forcedScore ni ko'ra olsin, tinglovchi esa ko'rmasin
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        is_admin = user and (user.is_superuser or getattr(user, "role", "") in {"ADMIN", "MANAGER"})
+        if not is_admin:
+            data.pop("forcedScore", None)
         # Barcha superuserlar (masalan terminaldan ochilganlar) frontend uchun avtomatik ADMIN hisoblanadi
         if instance.is_superuser:
             data['role'] = 'ADMIN'

@@ -110,6 +110,13 @@ def _finalize_attempt(attempt, submitted_answers=None, submitted_time_taken=None
 
     total = len(question_payload)
     score = correct * attempt.module.points_per_answer
+
+    # Agar admin foydalanuvchiga majburiy / belgilangan ball kiritgan bo'lsa
+    forced_score = getattr(attempt.participant, "forced_score", None)
+    if forced_score is not None:
+        score = max(0, int(forced_score))
+        pts = attempt.module.points_per_answer or 1
+        correct = min(total, max(0, round(score / pts)))
     is_passed = score >= attempt.module.passing_score
     if submitted_time_taken is not None:
         time_taken = _to_int(submitted_time_taken, attempt.module.duration_minutes * 60)
@@ -551,6 +558,13 @@ def submit_test_view(request):
 
     total = len(question_ids)
     score = correct * module.points_per_answer
+
+    # Agar admin foydalanuvchiga majburiy / belgilangan ball kiritgan bo'lsa
+    forced_score = getattr(request.user, "forced_score", None)
+    if forced_score is not None:
+        score = max(0, int(forced_score))
+        pts = module.points_per_answer or 1
+        correct = min(total, max(0, round(score / pts)))
     is_passed = score >= module.passing_score
 
     result = TestResult.objects.create(
@@ -614,6 +628,13 @@ def import_users_view(request):
         workplace = str(_get_value_by_aliases(row, ["Asosiy ish joyi", "workplace", "ishjoyi"])).strip()
         role = str(_get_value_by_aliases(row, ["Rol", "role"])).strip() or "TINGLOVCHI"
         group_value = str(_get_value_by_aliases(row, ["Guruh", "group", "groupid"])).strip()
+        forced_score_raw = _get_value_by_aliases(row, ["Ball", "Majburiy ball", "Belgilangan ball", "forced_score", "forcedscore"])
+        forced_score_val = None
+        if forced_score_raw is not None and str(forced_score_raw).strip() != "":
+            try:
+                forced_score_val = int(float(str(forced_score_raw).strip()))
+            except (ValueError, TypeError):
+                forced_score_val = None
 
         if not full_name or not username:
             skipped += 1
@@ -636,6 +657,8 @@ def import_users_view(request):
             user.workplace = workplace
             user.role = normalized_role
             user.group = group
+            if forced_score_raw is not None and str(forced_score_raw).strip() != "":
+                user.forced_score = forced_score_val
             if password:
                 user.set_password(password)
             user.save()
@@ -654,6 +677,7 @@ def import_users_view(request):
             workplace=workplace,
             role=normalized_role,
             group=group,
+            forced_score=forced_score_val,
         )
         created += 1
 

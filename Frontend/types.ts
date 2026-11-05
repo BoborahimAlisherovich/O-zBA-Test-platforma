@@ -15,6 +15,7 @@ export interface User {
   groupId?: string | number;
   isArchived?: boolean;
   profilePhoto?: string;
+  forcedScore?: number | null;
 }
 
 export interface Group {

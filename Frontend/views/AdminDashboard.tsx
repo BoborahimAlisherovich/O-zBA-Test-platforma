@@ -163,7 +163,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // Forms
-  const [userForm, setUserForm] = useState({ fullName: '', username: '', password: '', workplace: '', role: UserRole.PARTICIPANT, groupId: '' });
+  const [userForm, setUserForm] = useState({ fullName: '', username: '', password: '', workplace: '', role: UserRole.PARTICIPANT, groupId: '', forcedScore: '' });
   const [groupForm, setGroupForm] = useState<{ name: string; moduleIds: string[] }>({ name: '', moduleIds: [] });
   const [subjectForm, setSubjectForm] = useState({ name: '' });
   const [siteSettingsForm, setSiteSettingsForm] = useState<SiteSettings>({
@@ -441,7 +441,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
     }
     const payload = {
       ...userForm,
-      groupId: userForm.groupId || null
+      groupId: userForm.groupId || null,
+      forcedScore: userForm.forcedScore !== '' && userForm.forcedScore !== null && !isNaN(Number(userForm.forcedScore))
+        ? Number(userForm.forcedScore)
+        : null
     };
     await runAdminMutation(
       () => editingId ? updateUser(editingId, payload) : createUser(payload),
@@ -1649,7 +1652,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
               <div className="flex flex-wrap gap-3">
                 <a href="/Foydalanuvchilar_shablon.xlsx" download className="bg-slate-100 text-slate-700 px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-sm hover:bg-slate-200 transition-colors"><Download className="w-5 h-5" /> Shablon</a>
                 <button onClick={() => userExcelInputRef.current?.click()} className="bg-green-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg shadow-green-100 hover:bg-green-700 transition-colors"><Upload className="w-5 h-5" /> Excel Import</button>
-                <button onClick={() => { setEditingId(null); setUserForm({fullName:'', username:'', password:'', workplace:'', role: UserRole.PARTICIPANT, groupId:''}); setIsUserModalOpen(true); }} className="bg-indigo-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg shadow-indigo-100"><Plus className="w-5 h-5" /> Yangi Foydalanuvchi</button>
+                <button onClick={() => { setEditingId(null); setUserForm({fullName:'', username:'', password:'', workplace:'', role: UserRole.PARTICIPANT, groupId:'', forcedScore: ''}); setIsUserModalOpen(true); }} className="bg-indigo-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg shadow-indigo-100"><Plus className="w-5 h-5" /> Yangi Foydalanuvchi</button>
               </div>
             </div>
 
@@ -1694,6 +1697,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
                     <th className={thClass}>Parol</th>
                     <th className={thClass}>Rol</th>
                     <th className={thClass}>Guruh</th>
+                    <th className={thClass}>Imtihon bali</th>
                     <th className={`${thClass} text-right`}>Amallar</th>
                   </tr>
                 </thead>
@@ -1712,8 +1716,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
                       <td className={`${tdClass} text-slate-600`}>
                         {(data.groups || []).find((g: Group) => String(g.id) === String(u.groupId))?.name || '—'}
                       </td>
+                      <td className={tdClass}>
+                        {u.forcedScore !== undefined && u.forcedScore !== null ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black bg-rose-50 text-rose-700 border border-rose-200" title="Admin tomonidan belgilangan majburiy imtihon bali">
+                            🎯 {u.forcedScore} ball
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs font-semibold">Avto</span>
+                        )}
+                      </td>
                       <td className={`${tdClass} text-right space-x-1`}>
-                        <button onClick={() => { setEditingId(String(u.id)); setUserForm({ fullName: u.fullName, username: u.username, password: u.password || '', workplace: u.workplace || '', role: u.role, groupId: String(u.groupId || '') }); setIsUserModalOpen(true); }} className="p-2 text-indigo-400 hover:text-indigo-600"><Edit2 className="w-5 h-5" /></button>
+                        <button onClick={() => { setEditingId(String(u.id)); setUserForm({ fullName: u.fullName, username: u.username, password: u.password || '', workplace: u.workplace || '', role: u.role, groupId: String(u.groupId || ''), forcedScore: u.forcedScore !== undefined && u.forcedScore !== null ? String(u.forcedScore) : '' }); setIsUserModalOpen(true); }} className="p-2 text-indigo-400 hover:text-indigo-600"><Edit2 className="w-5 h-5" /></button>
                         <button onClick={() => handleArchiveUser(u)} className="p-2 text-amber-500 hover:text-amber-700" title="Arxivlash"><Archive className="w-5 h-5" /></button>
                         <button onClick={async () => { if(confirm("O'chirilsinmi?")) await runAdminMutation(() => deleteUser(u.id), "Foydalanuvchi o'chirildi."); }} className="p-2 text-red-400 hover:text-red-600"><Trash2 className="w-5 h-5" /></button>
                       </td>
@@ -1721,7 +1734,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
                   ))}
                   {filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-500">
+                      <td colSpan={8} className="px-5 py-10 text-center text-sm text-slate-500">
                         Filtrga mos foydalanuvchi topilmadi.
                       </td>
                     </tr>
@@ -2290,6 +2303,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
                     <option key={group.id} value={group.id}>{group.name}</option>
                   ))}
                 </select>
+              </div>
+              <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+                    🎯 Imtihon bali (Oldindan belgilash / Yiqitish)
+                  </label>
+                  {userForm.forcedScore !== '' && (
+                    <button
+                      type="button"
+                      onClick={() => setUserForm({ ...userForm, forcedScore: '' })}
+                      className="text-[11px] font-bold text-rose-600 hover:underline"
+                    >
+                      Tozalash (Avto)
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max="1000"
+                  placeholder="Avtomatik hisoblash (bo'sh qoldiring)"
+                  className="w-full px-5 py-3.5 bg-white rounded-xl font-bold text-slate-800 outline-none border border-amber-200 focus:border-amber-500 placeholder:text-slate-400 placeholder:font-normal"
+                  value={userForm.forcedScore}
+                  onChange={e => setUserForm({ ...userForm, forcedScore: e.target.value })}
+                />
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  ⚠️ <b>Yiqitish yoki aniq ball chiqarish:</b> Agar bu yerga ball yozsangiz (masalan <code>35</code> yoki <code>0</code>), talaba testda nima belgilashidan qat'i nazar aynan shu ball chiqadi va unga ham shu ko'rinadi. Bo'sh qoldirilsa, o'z kuchi bilan hisoblanadi.
+                </p>
               </div>
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={() => setIsUserModalOpen(false)} className="flex-1 py-4 font-black text-slate-400">BEKOR QILISH</button>
