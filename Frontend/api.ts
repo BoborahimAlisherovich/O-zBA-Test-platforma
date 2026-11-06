@@ -11,35 +11,42 @@ function normalizeApiBase(value: string) {
 function buildApiCandidates() {
   const candidates = new Set<string>();
 
-  if (envApiBase) {
-    candidates.add(normalizeApiBase(envApiBase));
-  }
-  if (typeof window === 'undefined') {
-    if (candidates.size === 0) {
-      candidates.add('/api');
+  if (typeof window !== 'undefined') {
+    const currentOrigin = window.location.origin;
+    const currentUrl = new URL(currentOrigin);
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(currentUrl.hostname);
+
+    if (currentUrl.hostname.includes('uzbamalaka.uz')) {
+      candidates.add('https://apimt.uzbamalaka.uz/api');
     }
-    return Array.from(candidates);
+
+    if (envApiBase) {
+      if (isLocalhost || (!envApiBase.includes('localhost') && !envApiBase.includes('127.0.0.1'))) {
+        candidates.add(normalizeApiBase(envApiBase));
+      }
+    }
+
+    if (isLocalhost) {
+      candidates.add('http://' + currentUrl.hostname + ':8000/api');
+      candidates.add('http://127.0.0.1:8000/api');
+      candidates.add('http://localhost:8000/api');
+    } else if (!currentUrl.hostname.includes('uzbamalaka.uz')) {
+      candidates.add(currentOrigin + '/api');
+    }
+  } else {
+    if (envApiBase) {
+      candidates.add(normalizeApiBase(envApiBase));
+    }
+    candidates.add('/api');
   }
 
-  const currentOrigin = window.location.origin;
-  const currentUrl = new URL(currentOrigin);
-  const isLocalhost = ['localhost', '127.0.0.1'].includes(currentUrl.hostname);
-
-  // Local Vite dev serverda /api proxysiz 404 qaytaradi, shuning uchun uni
-  // localhost rejimida kandidat sifatida qo'shmaymiz.
-  if (!isLocalhost) {
-    candidates.add(`${currentOrigin}/api`);
-  }
-
-  if (isLocalhost) {
-    candidates.add(`http://${currentUrl.hostname}:8000/api`);
-    candidates.add(`http://127.0.0.1:8000/api`);
-    candidates.add(`http://localhost:8000/api`);
-  }
-
-  const cached = localStorage.getItem(API_BASE_CACHE_KEY);
+  const cached = typeof window !== 'undefined' ? localStorage.getItem(API_BASE_CACHE_KEY) : null;
   if (cached) {
-    candidates.add(normalizeApiBase(cached));
+    const norm = normalizeApiBase(cached);
+    const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (isLocalhost || (!norm.includes('127.0.0.1') && !norm.includes('localhost') && norm !== (window?.location?.origin + '/api'))) {
+      candidates.add(norm);
+    }
   }
 
   return Array.from(candidates).map(normalizeApiBase);
@@ -65,7 +72,8 @@ function clearInvalidCachedApiBase() {
   }
 
   const normalized = normalizeApiBase(cached);
-  if (normalized === `${window.location.origin}/api`) {
+  const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  if (!isLocalhost && (normalized === (window.location.origin + '/api') || normalized.includes('127.0.0.1') || normalized.includes('localhost'))) {
     localStorage.removeItem(API_BASE_CACHE_KEY);
     apiBaseCandidates = buildApiCandidates();
     activeApiBase = apiBaseCandidates[0];
