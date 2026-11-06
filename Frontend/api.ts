@@ -266,6 +266,13 @@ export async function deleteUser(id: string | number) {
   return request(`/users/${id}/`, { method: 'DELETE' });
 }
 
+export async function bulkDeleteUsers(ids: (string | number)[]) {
+  return request('/users/bulk-delete/', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export async function createGroup(payload: any) {
   return request('/groups/', { method: 'POST', body: JSON.stringify(payload) });
 }

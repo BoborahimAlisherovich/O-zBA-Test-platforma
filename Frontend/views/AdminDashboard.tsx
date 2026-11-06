@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SiteSettings, User, Group, Subject, Module, Question, UserRole, TestResult, ResultArchiveFolder } from '../types';
 import {
+  bulkDeleteUsers,
   createResultArchiveFolder,
   createGroup,
   createModule,
@@ -149,6 +150,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
   
   // States
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [selectedTableUserIds, setSelectedTableUserIds] = useState<Array<string | number>>([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [subjectSearchTerm, setSubjectSearchTerm] = useState('');
   const [questionSearchTerm, setQuestionSearchTerm] = useState('');
@@ -413,11 +415,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
 
   const filteredUsers = useMemo(() => {
     return (data.users || []).filter((u: User) => {
-      if (!userSearchTerm) return true;
-      const term = userSearchTerm.toLowerCase();
-      return (u.fullName || '').toLowerCase().includes(term) || (u.username || '').toLowerCase().includes(term);
+      if (userSearchTerm) {
+        const term = userSearchTerm.toLowerCase();
+        const matches = (u.fullName || '').toLowerCase().includes(term) || (u.username || '').toLowerCase().includes(term);
+        if (!matches) return false;
+      }
+      if (userFilters.fullName && !(u.fullName || '').toLowerCase().includes(userFilters.fullName.toLowerCase())) return false;
+      if (userFilters.username && !(u.username || '').toLowerCase().includes(userFilters.username.toLowerCase())) return false;
+      if (userFilters.workplace && !(u.workplace || '').toLowerCase().includes(userFilters.workplace.toLowerCase())) return false;
+      if (userFilters.groupId && String(u.groupId || '') !== String(userFilters.groupId)) return false;
+      return true;
     });
-  }, [data.users, userSearchTerm]);
+  }, [data.users, userSearchTerm, userFilters]);
 
   const filteredResults = useMemo(() => {
     return isDemoTab ? (data.demoResults || []) : (data.results || []);
@@ -431,6 +440,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
   const paginatedResults = useMemo(() => filteredResults.slice((resultPage - 1) * ITEMS_PER_PAGE, resultPage * ITEMS_PER_PAGE), [filteredResults, resultPage]);
 
   // --- ACTIONS ---
+  const handleBulkDeleteUsers = async () => {
+    if (selectedTableUserIds.length === 0) return;
+    const count = selectedTableUserIds.length;
+    if (!confirm(`Haqiqatan ham tanlangan ${count} ta foydalanuvchini o'chirmoqchimisiz?`)) {
+      return;
+    }
+    await runAdminMutation(
+      async () => {
+        try {
+          await bulkDeleteUsers(selectedTableUserIds);
+        } catch {
+          await Promise.all(selectedTableUserIds.map((id) => deleteUser(id)));
+        }
+      },
+      `${count} ta foydalanuvchi muvaffaqiyatli o'chirildi.`
+    );
+    setSelectedTableUserIds([]);
+  };
+
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const currentUsers = [...(data.users || [])];
@@ -1649,7 +1677,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
                 <h3 className="text-2xl font-black text-gray-900">Foydalanuvchilar Bazasi</h3>
                 <p className="mt-1 text-sm text-slate-500">Faol foydalanuvchilar ro'yxati, filtr va arxivlash boshqaruvi.</p>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                {selectedTableUserIds.length > 0 && (
+                  <button
+                    onClick={handleBulkDeleteUsers}
+                    className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg shadow-red-200 transition-all animate-in fade-in"
+                    title="Tanlangan foydalanuvchilarni o'chirish"
+                  >
+                    <Trash2 className="w-5 h-5" /> Tanlanganlarni o'chirish ({selectedTableUserIds.length})
+                  </button>
+                )}
                 <a href="/Foydalanuvchilar_shablon.xlsx" download className="bg-slate-100 text-slate-700 px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-sm hover:bg-slate-200 transition-colors"><Download className="w-5 h-5" /> Shablon</a>
                 <button onClick={() => userExcelInputRef.current?.click()} className="bg-green-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg shadow-green-100 hover:bg-green-700 transition-colors"><Upload className="w-5 h-5" /> Excel Import</button>
                 <button onClick={() => { setEditingId(null); setUserForm({fullName:'', username:'', password:'', workplace:'', role: UserRole.PARTICIPANT, groupId:'', forcedScore: ''}); setIsUserModalOpen(true); }} className="bg-indigo-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg shadow-indigo-100"><Plus className="w-5 h-5" /> Yangi Foydalanuvchi</button>
@@ -1687,10 +1724,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
               </select>
             </div>
 
+            {selectedTableUserIds.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-red-50 border border-red-200 rounded-2xl px-5 py-3 mb-4 animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold text-red-800">
+                    Tanlangan foydalanuvchilar: <strong className="text-red-900">{selectedTableUserIds.length}</strong> ta
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTableUserIds([])}
+                    className="text-xs text-red-600 hover:text-red-800 font-semibold underline"
+                  >
+                    Belgilashni bekor qilish
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBulkDeleteUsers}
+                  className="text-xs bg-red-600 text-white px-4 py-2 rounded-xl font-black hover:bg-red-700 flex items-center gap-1.5 shadow-sm transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> Tanlanganlarni o'chirish ({selectedTableUserIds.length})
+                </button>
+              </div>
+            )}
+
             <div className={tableWrapClass}>
               <table className={tableClass}>
                 <thead>
                   <tr>
+                    <th className={`${thClass} w-12 text-center`}>
+                      <input
+                        type="checkbox"
+                        checked={paginatedUsers.length > 0 && paginatedUsers.every((u: User) => selectedTableUserIds.includes(u.id))}
+                        onChange={(e) => {
+                          const pageIds = paginatedUsers.map((u: User) => u.id);
+                          if (e.target.checked) {
+                            setSelectedTableUserIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+                          } else {
+                            setSelectedTableUserIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        title="Barchasini belgilash / bekor qilish"
+                      />
+                    </th>
                     <th className={thClass}>F.I.SH</th>
                     <th className={thClass}>Login</th>
                     <th className={thClass}>Asosiy ish joyi</th>
@@ -1702,39 +1779,54 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ data: rawData, reloadDa
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {paginatedUsers.map((u: User) => (
-                    <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                      <td className={`${tdClass} text-slate-900 font-bold`}>{u.fullName}</td>
-                      <td className={`${tdClass} text-slate-600 font-mono`}>{u.username}</td>
-                      <td className={`${tdClass} text-slate-600`}>{u.workplace || '—'}</td>
-                      <td className={`${tdClass} text-slate-500`}>{u.password || '—'}</td>
-                      <td className={tdClass}>
-                        <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${u.role === UserRole.ADMIN ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {u.role === UserRole.PARTICIPANT ? 'TINGLOVCHI' : u.role}
-                        </span>
-                      </td>
-                      <td className={`${tdClass} text-slate-600`}>
-                        {(data.groups || []).find((g: Group) => String(g.id) === String(u.groupId))?.name || '—'}
-                      </td>
-                      <td className={tdClass}>
-                        {u.forcedScore !== undefined && u.forcedScore !== null ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black bg-rose-50 text-rose-700 border border-rose-200" title="Admin tomonidan belgilangan majburiy imtihon bali">
-                            🎯 {u.forcedScore} ball
+                  {paginatedUsers.map((u: User) => {
+                    const isSelected = selectedTableUserIds.includes(u.id);
+                    return (
+                      <tr key={u.id} className={`${isSelected ? 'bg-red-50/40' : 'hover:bg-slate-50'} transition-colors`}>
+                        <td className={`${tdClass} text-center`}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              setSelectedTableUserIds((prev) =>
+                                e.target.checked ? [...prev, u.id] : prev.filter((id) => id !== u.id)
+                              );
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                        </td>
+                        <td className={`${tdClass} text-slate-900 font-bold`}>{u.fullName}</td>
+                        <td className={`${tdClass} text-slate-600 font-mono`}>{u.username}</td>
+                        <td className={`${tdClass} text-slate-600`}>{u.workplace || '—'}</td>
+                        <td className={`${tdClass} text-slate-500`}>{u.password || '—'}</td>
+                        <td className={tdClass}>
+                          <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${u.role === UserRole.ADMIN ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {u.role === UserRole.PARTICIPANT ? 'TINGLOVCHI' : u.role}
                           </span>
-                        ) : (
-                          <span className="text-slate-400 text-xs font-semibold">Avto</span>
-                        )}
-                      </td>
-                      <td className={`${tdClass} text-right space-x-1`}>
-                        <button onClick={() => { setEditingId(String(u.id)); setUserForm({ fullName: u.fullName, username: u.username, password: u.password || '', workplace: u.workplace || '', role: u.role, groupId: String(u.groupId || ''), forcedScore: u.forcedScore !== undefined && u.forcedScore !== null ? String(u.forcedScore) : '' }); setIsUserModalOpen(true); }} className="p-2 text-indigo-400 hover:text-indigo-600"><Edit2 className="w-5 h-5" /></button>
-                        <button onClick={() => handleArchiveUser(u)} className="p-2 text-amber-500 hover:text-amber-700" title="Arxivlash"><Archive className="w-5 h-5" /></button>
-                        <button onClick={async () => { if(confirm("O'chirilsinmi?")) await runAdminMutation(() => deleteUser(u.id), "Foydalanuvchi o'chirildi."); }} className="p-2 text-red-400 hover:text-red-600"><Trash2 className="w-5 h-5" /></button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className={`${tdClass} text-slate-600`}>
+                          {(data.groups || []).find((g: Group) => String(g.id) === String(u.groupId))?.name || '—'}
+                        </td>
+                        <td className={tdClass}>
+                          {u.forcedScore !== undefined && u.forcedScore !== null ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black bg-rose-50 text-rose-700 border border-rose-200" title="Admin tomonidan belgilangan majburiy imtihon bali">
+                              🎯 {u.forcedScore} ball
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-xs font-semibold">Avto</span>
+                          )}
+                        </td>
+                        <td className={`${tdClass} text-right space-x-1`}>
+                          <button onClick={() => { setEditingId(String(u.id)); setUserForm({ fullName: u.fullName, username: u.username, password: u.password || '', workplace: u.workplace || '', role: u.role, groupId: String(u.groupId || ''), forcedScore: u.forcedScore !== undefined && u.forcedScore !== null ? String(u.forcedScore) : '' }); setIsUserModalOpen(true); }} className="p-2 text-indigo-400 hover:text-indigo-600" title="Tahrirlash"><Edit2 className="w-5 h-5" /></button>
+                          <button onClick={() => handleArchiveUser(u)} className="p-2 text-amber-500 hover:text-amber-700" title="Arxivlash"><Archive className="w-5 h-5" /></button>
+                          <button onClick={async () => { if(confirm("O'chirilsinmi?")) await runAdminMutation(() => deleteUser(u.id), "Foydalanuvchi o'chirildi."); }} className="p-2 text-red-400 hover:text-red-600" title="O'chirish"><Trash2 className="w-5 h-5" /></button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-5 py-10 text-center text-sm text-slate-500">
+                      <td colSpan={9} className="px-5 py-10 text-center text-sm text-slate-500">
                         Filtrga mos foydalanuvchi topilmadi.
                       </td>
                     </tr>

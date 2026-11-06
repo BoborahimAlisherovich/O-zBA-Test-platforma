@@ -3,7 +3,7 @@ import logging
 from django.conf import settings
 from django.core.cache import cache
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -35,6 +35,20 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.select_related("group").all().order_by("-id")
     serializer_class = UserSerializer
     permission_classes = [IsAdminRole]
+
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        ids = request.data.get("ids", [])
+        if not isinstance(ids, list):
+            return Response(
+                {"detail": "Foydalanuvchilar ID lari ro'yxat bo'lishi kerak."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        qs = User.objects.filter(id__in=ids)
+        if request.user and request.user.is_authenticated:
+            qs = qs.exclude(id=request.user.id)
+        count, _ = qs.delete()
+        return Response({"deleted": count}, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
